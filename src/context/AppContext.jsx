@@ -1,7 +1,6 @@
 import { createContext } from "react";
 import { users} from "../data/seedData.js";
-
-
+import { useState, useContext } from "react";
 
 //create a context for the app
 const AppContext = createContext();
