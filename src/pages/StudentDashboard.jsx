@@ -3,8 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import { useState } from "react";
 
 const StudentDashboard = () => {
-  const { currentUser, logout, assignments, submitAssignment } =
-    useAppContext();
+  const { currentUser, logout, assignments, submitAssignment } = useAppContext();
 
   const [selectedAssignment, setSelectedAssignment] = useState(null);
 
