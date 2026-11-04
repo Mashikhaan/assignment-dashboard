@@ -3,7 +3,8 @@ import { useAppContext } from "../context/AppContext";
 import { useState } from "react";
 
 const StudentDashboard = () => {
-  const { currentUser, logout, assignments, submitAssignment } = useAppContext();
+  const { currentUser, logout, assignments, submitAssignment } =
+    useAppContext();
 
   const [selectedAssignment, setSelectedAssignment] = useState(null);
 
@@ -21,6 +22,15 @@ const StudentDashboard = () => {
   const submittedCount = myAssignments.filter(
     (assignment) => assignment.submissions[currentUser.id] === "Submitted",
   ).length;
+
+  //total assignments
+  const totalAssignments = myAssignments.length;
+
+  //progress percentage
+  const progressPercentage =
+    totalAssignments === 0
+      ? 0
+      : Math.round((submittedCount / totalAssignments) * 100);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -71,6 +81,36 @@ const StudentDashboard = () => {
             <h3 className="text-3xl font-bold mt-3 text-green-600">
               {submittedCount}
             </h3>
+          </div>
+
+          {/* Overall Progress */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Overall Progress
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Track your assignment completion
+                </p>
+              </div>
+
+              <span className="text-2xl font-bold text-blue-600">
+                {progressPercentage}%
+              </span>
+            </div>
+
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
+
+            <div className="flex justify-between text-sm text-gray-500 mt-3">
+              <span>{submittedCount} Submitted</span>
+              <span>{pendingCount} Pending</span>
+            </div>
           </div>
         </div>
 
@@ -137,7 +177,6 @@ const StudentDashboard = () => {
                         Submit Assignment
                       </button>
                     )}
-
                   </div>
                 );
               })}
@@ -156,46 +195,36 @@ const StudentDashboard = () => {
 
       {/*Confirm Assignment submission  */}
       {selectedAssignment && (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold">Confirm Submission</h2>
 
-          <h2 className="text-xl font-bold">
-            Confirm Submission
-          </h2>
+            <p className="mt-3">
+              Are you sure you want to submit{" "}
+              <strong>{selectedAssignment.title}</strong>?
+            </p>
 
-          <p className="mt-3">
-            Are you sure you want to submit{" "}
-            <strong>{selectedAssignment.title}</strong>?
-          </p>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                className="text-gray-500 hover:text-gray-700 px-4 py-2 border rounded-lg cursor-pointer"
+                onClick={() => setSelectedAssignment(null)}
+              >
+                Cancel
+              </button>
 
-          <div className="flex justify-end gap-3 mt-6">
-
-            <button
-              className="text-gray-500 hover:text-gray-700 px-4 py-2 border rounded-lg cursor-pointer"
-              onClick={() => setSelectedAssignment(null)}
-            >
-              Cancel
-            </button>
-
-            <button
-            className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 cursor-pointer"
-              onClick={() => {
-                submitAssignment(
-                  selectedAssignment.id,
-                  currentUser.id
-                );
-                setSelectedAssignment(null);
-              }}
-            >
-              Confirm Submit
-            </button>
-
+              <button
+                className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 cursor-pointer"
+                onClick={() => {
+                  submitAssignment(selectedAssignment.id, currentUser.id);
+                  setSelectedAssignment(null);
+                }}
+              >
+                Confirm Submit
+              </button>
+            </div>
           </div>
-
         </div>
-      </div>
-    )}
-
+      )}
     </div>
   );
 };
