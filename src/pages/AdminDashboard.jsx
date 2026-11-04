@@ -1,9 +1,59 @@
 import React from 'react'
 import { useAppContext } from '../context/AppContext';
-
-
+import { useState } from 'react';
+import AssignmentTable from '../components/admin/AssignmentTable';
+import AssignmentForm from '../components/admin/AssignmentForm';
 const AdminDashboard = () => {
-  const { currentUser, logout } = useAppContext();
+  const { currentUser, logout, assignments, addAssignment, updateAssignment, deleteAssignment} = useAppContext();
+
+  const [showForm, setShowForm] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState(null);
+
+  // Only show assignments created by the logged-in admin
+   const myAssignments = assignments.filter(
+    (assignment) => assignment.createdBy === currentUser.id
+  );
+
+   // Create assignment
+  const handleCreate = (data) => {
+    addAssignment(data);
+    setShowForm(false);
+  };
+
+  // Update assignment
+  const handleUpdate = (data) => {
+    updateAssignment(editingAssignment.id, data)
+    setEditingAssignment(null);
+    setShowForm(false);
+  }
+
+    // Delete assignment
+  const handleDelete = (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this assignment?");
+    if(confirmDelete){
+      deleteAssignment(id);
+    }
+  }
+
+  // Statistics:--
+
+  const totalStudents = 5;
+
+   const totalAssignments = myAssignments.length;
+
+  //total assigned assignments
+  const totalAssigned = myAssignments.reduce((total, assignment) => {
+    total + assignment.assignedTo.length
+  }, 0);
+
+  //total submitted assignments
+  const totalSubmitted = myAssignments.reduce((total, assignment) => {
+    total + Object.values(assignment.submissions).filter((status) => status === "Submitted").length
+  }, 0);
+
+  //completion rate
+  const completionRate = totalAssigned ? Math.round((totalSubmitted / totalAssigned) * 100 ) : 0;
+
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -21,7 +71,7 @@ const AdminDashboard = () => {
 
           <button
             onClick={logout}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 cursor-pointer"
           >
             Logout
           </button>
@@ -46,17 +96,17 @@ const AdminDashboard = () => {
 
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <p className="text-gray-500">Total Assignments</p>
-            <h3 className="text-3xl font-bold mt-3">0</h3>
+            <h3 className="text-3xl font-bold mt-3">{totalAssignments}</h3>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <p className="text-gray-500">Total Students</p>
-            <h3 className="text-3xl font-bold mt-3">5</h3>
+            <h3 className="text-3xl font-bold mt-3">{totalStudents}</h3>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <p className="text-gray-500">Completion Rate</p>
-            <h3 className="text-3xl font-bold mt-3">0%</h3>
+            <h3 className="text-3xl font-bold mt-3">{completionRate}%</h3>
           </div>
 
         </div>
@@ -75,18 +125,66 @@ const AdminDashboard = () => {
               </p>
             </div>
 
-            <button className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700">
+            <button
+            onClick={()=>{
+              setEditingAssignment(null);
+              setShowForm(true)
+            }}
+             className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 cursor-pointer">
               + Create Assignment
             </button>
           </div>
 
-          <div className="text-center py-12 text-gray-400">
-            No assignments created yet.
-          </div>
+           {/* Assignment List */}
+          {myAssignments.length > 0 ? (
+            <AssignmentTable
+              assignments={myAssignments}
+              onEdit={(assignment) => {
+                setEditingAssignment(assignment);
+                setShowForm(true);
+              }}
+              onDelete={handleDelete}
+            />
+          ) : (
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-lg font-medium">
+                No assignments created yet.
+              </p>
+              <p className="text-sm mt-2">
+                Click on Create Assignment to get started.
+              </p>
+            </div>
+          )}
+
 
         </div>
 
       </main>
+
+
+      {/* Create / Edit Assignment Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+
+            <h2 className="text-xl font-bold mb-5">
+              {editingAssignment
+                ? "Edit Assignment"
+                : "Create New Assignment"}
+            </h2>
+
+            <AssignmentForm
+              initialData={editingAssignment}
+              onSubmit={editingAssignment ? handleUpdate : handleCreate}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingAssignment(null);
+              }}
+            />
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -12,7 +12,7 @@ const StudentDashboard = () => {
 
       <button
         onClick={logout}
-        className="bg-red-500 text-white px-5 py-2 rounded mt-5"
+        className="bg-red-500 text-white px-5 py-2 rounded mt-5 cursor-pointer"
       >
         Logout
       </button>
