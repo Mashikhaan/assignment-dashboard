@@ -86,8 +86,17 @@ export const AppProvider = ({ children }) => {
         prevAssignments.filter((assignment) => assignment.id !== assignmentId))
     }
 
+    //Submit Assignment function
+    const submitAssignment = (assignmentId, studentId) => {
+        setAssignments((prevAssignments) => 
+            prevAssignments.map((assignment) =>
+            assignment.id === assignmentId ? {...assignment, submissions: {...assignment.submissions, [studentId]: "Submitted"}} : assignment
+            )
+        )
+    }
+
     return (
-        <AppContext.Provider value={{currentUser, login, logout, assignments, addAssignment, updateAssignment, deleteAssignment}}>
+        <AppContext.Provider value={{currentUser, login, logout, assignments, addAssignment, updateAssignment, deleteAssignment, submitAssignment}}>
             {children}
         </AppContext.Provider>
     )
