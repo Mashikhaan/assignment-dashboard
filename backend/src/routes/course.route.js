@@ -63,6 +63,11 @@ courseRouter.post("/:courseId/enroll",authMiddleware,authorizeRolesMiddleware("s
 
 
 //Get students enrolled courses route
+/**
+ * @route GET /api/courses/:courseId/students
+ * @desc Get students enrolled in a course
+ * @access Private
+ */
 courseRouter.get("/:courseId/students",authMiddleware,authorizeRolesMiddleware("professor"),getEnrolledStudentsController);
 
 export default courseRouter;

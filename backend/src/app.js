@@ -3,6 +3,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import authRouter from './routes/auth.route.js';
 import courseRouter from './routes/course.route.js';
+import assignmentRouter from './routes/assignment.route.js';
 
 const app = express();
 
@@ -26,5 +27,6 @@ app.get("/health",(req, res) => {
 //register routes
 app.use("/api/auth", authRouter);
 app.use("/api/courses", courseRouter);
+app.use("/api/assignment", assignmentRouter)
 
 export default app;
