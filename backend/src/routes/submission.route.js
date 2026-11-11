@@ -1,7 +1,7 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { authorizeRolesMiddleware } from '../middleware/role.middleware.js';
-import { acknowledgeGroupAssignmentController, acknowledgeIndividualAssignmentController } from '../controllers/submission.controller.js';
+import { acknowledgeGroupAssignmentController, acknowledgeIndividualAssignmentController, getAssignmentStatusController } from '../controllers/submission.controller.js';
 
 
 const submissionRouter = express.Router();
@@ -25,9 +25,13 @@ submissionRouter.post("/:assignmentId/acknowledge",authMiddleware,authorizeRoles
 submissionRouter.post("/:assignmentId/group-acknowledge",authMiddleware,authorizeRolesMiddleware("student"),acknowledgeGroupAssignmentController);
 
 
-
-
-
+//get assignment status route
+/**
+ * @route GET /api/submissions/:assignmentId/status
+ * @desc Get assignment status
+ * @access Private
+ */
+submissionRouter.get("/:assignmentId/status",authMiddleware,authorizeRolesMiddleware("student"),getAssignmentStatusController);
 
 
 

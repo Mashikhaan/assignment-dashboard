@@ -19,6 +19,11 @@ const submissionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Group",
     },
+     acknowledgedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
     acknowledgedAt:{
         type: Date,
         default: Date.now,

@@ -134,3 +134,75 @@ export const acknowledgeGroupAssignmentController = async (req, res) => {
     });
   }
 }
+
+
+//get assignment status
+export const getAssignmentStatusController = async (req, res) => {
+    try {
+        const {assignmentId} = req.params;
+
+        //get assignment
+        const assignment = await assignmentModel.findById(assignmentId)
+        .populate("course","students")
+
+        //check if assignment exists
+        if(!assignment){
+            return res.status(404).json({
+                success: false,
+                message: "Assignment not found"
+            });
+        }
+
+        //check enrolled students
+         const isEnrolled = assignment.course.students.some(
+      (studentId) => studentId.toString() === req.user.id
+    );
+
+    if (!isEnrolled) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not enrolled in this course",
+      });
+    }
+
+    let submission;
+
+     if (assignment.submissionType === "Individual") {
+      submission = await submissionModel.findOne({
+        assignment: assignmentId,
+        student: req.user.id,
+      }).populate("acknowledgedBy", "name email");
+    } else {
+      const group = await groupModel.findOne({
+        course: assignment.course._id,
+        members: req.user.id,
+      });
+
+
+      if (!group) {
+        return res.status(404).json({
+          success: false,
+          message: "You are not a member of any group in this course.Create or join one to submit this assignment.",
+        });
+      }
+
+      //submission
+      submission = await submissionModel.findOne({
+        assignment: assignmentId,
+        group: group._id,
+      }).populate("acknowledgedBy", "name email");
+    }
+
+    return res.status(200).json({
+      success: true,
+      acknowledged: !!submission,
+      submission,
+    });
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: err.message,
+        
+      })
+    }
+}

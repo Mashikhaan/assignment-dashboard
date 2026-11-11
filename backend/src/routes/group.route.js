@@ -1,7 +1,7 @@
 import express from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { authorizeRolesMiddleware } from "../middleware/role.middleware.js";
-import { createGroupController, getGroupDetailsController, joinGroupController } from "../controllers/group.controller.js";
+import { createGroupController, getGroupDetailsController, getGroupsByCourse, joinGroupController } from "../controllers/group.controller.js";
 
 const groupRouter = express.Router();
 
@@ -35,5 +35,9 @@ groupRouter.post("/:groupId/join",authMiddleware, authorizeRolesMiddleware("stud
 groupRouter.get("/:groupId", authMiddleware,
     authorizeRolesMiddleware("student"),getGroupDetailsController
 )
+
+
+//get group by course route
+groupRouter.get("/course/:courseId", authMiddleware,authorizeRolesMiddleware("student"), getGroupsByCourse);
 
 export default groupRouter;

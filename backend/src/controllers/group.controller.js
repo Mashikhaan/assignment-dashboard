@@ -193,3 +193,47 @@ export const getGroupDetailsController = async (req, res) => {
       })
     }
 }
+
+
+//get groups by course controller
+export const getGroupsByCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    //find course
+    const course = await courseModel.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    const isEnrolled = course.students.some(
+      (studentId) => studentId.toString() === req.user.id
+    );
+
+    if (!isEnrolled) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not enrolled in this course",
+      });
+    }
+
+    const groups = await groupModel.find({ course: courseId })
+      .populate("leader", "name email")
+      .populate("members", "name email");
+
+    return res.status(200).json({
+      success: true,
+      count: groups.length,
+      groups,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
