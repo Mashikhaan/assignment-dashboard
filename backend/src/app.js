@@ -5,6 +5,7 @@ import authRouter from './routes/auth.route.js';
 import courseRouter from './routes/course.route.js';
 import assignmentRouter from './routes/assignment.route.js';
 import groupRouter from './routes/group.route.js';
+import submissionRouter from './routes/submission.route.js';
 
 const app = express();
 
@@ -30,5 +31,6 @@ app.use("/api/auth", authRouter);
 app.use("/api/courses", courseRouter);
 app.use("/api/assignment", assignmentRouter)
 app.use("/api/groups", groupRouter)
+app.use("/api/submissions", submissionRouter)
 
 export default app;

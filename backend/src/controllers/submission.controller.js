@@ -1,0 +1,136 @@
+import assignmentModel from "../models/assignment.model.js";
+import groupModel from "../models/group.model.js";
+import submissionModel from "../models/submission.model.js";
+
+
+
+
+//acknowledge individual assignment submission controller
+export const acknowledgeIndividualAssignmentController = async (req, res) => {
+    try {
+     const {assignmentId} = req.params;
+
+     //find assignment by Id
+     const assignment = await assignmentModel.findById(assignmentId).populate("course", "students");
+
+     if(!assignment){
+         return res.status(404).json({message: "Assignment not found"});
+     }
+
+     //check submission type
+     if(assignment.submissionType !== "Individual"){
+         return res.status(400).json({message: "This assignment is not an individual assignment"});
+     }
+
+     //check enrolled students in course
+     const isEnrolled = assignment.course.students.some(
+        (studentId) => studentId.toString() === req.user._id.toString()
+     )
+
+     if(!isEnrolled){
+         return res.status(401).json({message: "You are not enrolled in this course"});
+     }
+
+     //check if student has already submitted
+     const existingSubmission = await submissionModel.findOne({
+         assignment: assignmentId,
+         student: req.user._id
+     });
+
+     if(existingSubmission){
+         return res.status(400).json({message: "You have already submitted this assignment"});
+     }
+
+     //create submission
+     const submission = await submissionModel.create({
+        assignment: assignmentId,
+        student: req.user._id,
+        acknowledgedBy:req.user._id,
+        acknowledgedAt: new Date(),
+     })
+
+     //send response
+     return res.status(201).json({
+        success: true,
+        message: "Assignment acknowledged successfully",
+        submission
+        });
+
+    }catch(err){
+     return res.status(500).json({
+        success: false,
+        message: err.message
+     })
+    }
+}
+
+
+//acknowledge group assignment by group leader
+export const acknowledgeGroupAssignmentController = async (req, res) => {
+    try {
+        const {assignmentId} = req.params;
+        const {groupId} = req.body;
+
+        //find and check assignment exists
+        const assignment = await assignmentModel.findById(assignmentId);
+
+        if(!assignment){
+            return res.status(404).json({message: "Assignment not found"});
+        }
+
+
+       //check assignment submission type
+       if(assignment.submissionType !== "Group"){
+        return res.status(400).json({message: "this  is not a group assignment"});
+       }
+
+       //find and check group exist
+       const group = await groupModel.findById(groupId);
+
+       if(!group){
+        return res.status(404).json({message: "Group not found"});
+       }
+
+       //check group belong assignment
+       if(group.course.toString() !== assignment.course.toString()){
+        return res.status(400).json({message: "Group does not belong to this assignment's course"});
+       }
+
+       //check group leader is the one who is acknowledging
+       if(group.leader.toString() !== req.user._id.toString()){
+        return res.status(403).json({
+            success: false,
+            message: "Only group leader can acknowledge this assignment",});
+       }
+
+       //check group is already acknowledge
+       const existingSubmission = await submissionModel.findOne({
+        assignment: assignmentId,
+        group: groupId,
+       })
+
+       if(existingSubmission){
+        return res.status(400).json({message: "Group has already acknowledged this assignment"});
+       }
+
+       //create submission
+       const submission = await submissionModel.create({
+           assignment: assignmentId,
+           group: groupId,
+           acknowledgedBy: req.user._id,
+           acknowledgedAt: new Date(),
+       })
+
+       //send response
+       return res.status(201).json({
+        success: true,
+        message: "Group assignment acknowledged  successfully", 
+        submission,
+    });
+    } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}

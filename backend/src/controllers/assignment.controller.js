@@ -4,7 +4,7 @@ import courseModel from "../models/course.model.js";
 //create assignment controller
 export const createAssignmentController = async (req, res) => {
   try {
-    const { title, description, course, dueDate } = req.body;
+    const { title, description, course, dueDate ,oneDriveLink, submissionType} = req.body;
 
     // Check required fields
     if (!title || !description || !course || !dueDate) {
@@ -47,6 +47,8 @@ export const createAssignmentController = async (req, res) => {
       course,
       professor: req.user._id,
       dueDate,
+      oneDriveLink,
+      submissionType
     });
 
     //send response
@@ -190,7 +192,7 @@ export const updateAssignmentController = async (req, res) => {
         }
 
         //only allow specific fields 
-        const allowedFields = ["title", "description", "dueDate"];
+        const allowedFields = ["title", "description", "dueDate", "oneDriveLink", "submissionType"];
 
         allowedFields.forEach((field) => {
             if(req.body[field] !== undefined){

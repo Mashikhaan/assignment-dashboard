@@ -27,7 +27,17 @@ const assignmentSchema = new mongoose.Schema({
     dueDate:{
         type:Date,
         required:true,
-    }
+    },
+    oneDriveLink:{
+        type:String,
+        required:true,
+        trim: true,
+    },
+    submissionType:{
+        type:String,
+        enum:["Individual","Group"],
+        required:true,
+    },
 },{timestamps:true});
 
 
