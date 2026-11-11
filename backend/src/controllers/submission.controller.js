@@ -1,4 +1,5 @@
 import assignmentModel from "../models/assignment.model.js";
+import courseModel from "../models/course.model.js";
 import groupModel from "../models/group.model.js";
 import submissionModel from "../models/submission.model.js";
 
@@ -205,4 +206,108 @@ export const getAssignmentStatusController = async (req, res) => {
         
       })
     }
+}
+
+
+//get submission assignment tracking controller
+export const getSubmissionAssignmentTrackingController = async (req, res) => {
+    try {
+    const { assignmentId } = req.params;
+
+    //find assignment
+    const assignment = await assignmentModel.findById(assignmentId);
+
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        message: "Assignment not found",
+      });
+    }
+
+
+    //check if user is professor
+    if (assignment.professor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view this assignment",
+      });
+    }
+
+    let tracking = [];
+    let total = 0;
+    let submitted = 0;
+
+    if (assignment.submissionType === "Individual") {
+      const course = await courseModel.findById(assignment.course)
+        .populate("students", "name email");
+
+      const submissions = await submissionModel.find({
+        assignment: assignmentId,
+      });
+
+      //get tracking for each student(Individual)
+      tracking = course.students.map((student) => {
+        const submission = submissions.find(
+          (item) => item.student?.toString() === student._id.toString()
+        );
+
+        return {
+          student,
+          status: submission ? "Submitted" : "Pending",
+          acknowledgedAt: submission?.acknowledgedAt || null,
+        };
+      });
+
+      total = tracking.length;
+
+      submitted = tracking.filter(
+        (item) => item.status === "Submitted"
+      ).length;
+
+    } else {
+      const groups = await groupModel.find({
+        course: assignment.course,
+      })
+        .populate("leader", "name email")
+        .populate("members", "name email");
+
+      const submissions = await submissionModel.find({
+        assignment: assignmentId,
+      }).populate("acknowledgedBy", "name email");
+
+      //get tracking for each group
+      tracking = groups.map((group) => {
+        const submission = submissions.find(
+          (item) => item.group?.toString() === group._id.toString()
+        );
+
+        return {
+          group,
+          status: submission ? "Submitted" : "Pending",
+          acknowledgedBy: submission?.acknowledgedBy || null,
+          acknowledgedAt: submission?.acknowledgedAt || null,
+        };
+      });
+
+      total = tracking.length;
+
+      submitted = tracking.filter(
+        (item) => item.status === "Submitted"
+      ).length;
+    }
+
+    return res.status(200).json({
+      success: true,
+      total,
+      submitted,
+      pending: total - submitted,
+      tracking,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 }
