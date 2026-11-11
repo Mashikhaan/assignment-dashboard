@@ -224,3 +224,91 @@ export const deleteCourseController = async (req, res) => {
     })
    }
 }
+
+
+
+//Enroll course controller
+export const enrollCourseController = async (req, res) => {
+    try {
+        const {courseId} = req.params;
+
+        const studentId = req.user._id;
+
+        const course = await courseModel.findById(courseId);
+
+        if(!course){
+            return res.status(404).json({
+                success: false,
+                message: "Course not found"
+            })
+        }
+
+        //check if student is already enrolled in course
+        const alreadyEnrolled = course.students.some((id) => id.toString() === studentId.toString());
+
+        if(alreadyEnrolled){
+            return res.status(400).json({
+                success: false,
+                message: "You are already enrolled in this course"
+            })
+        }
+
+      //push student id to course students array
+      course.students.push(studentId);
+
+     //save in database
+      await course.save();
+
+      //send response 
+      res.status(200).json({
+        success: true,
+        message: "Successfully enrolled in course",
+        course
+      })
+
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: err.message
+        })
+    }
+}
+
+
+//get enrolled students in course controller
+export const getEnrolledStudentsController = async (req, res) => {
+    try {
+        const {courseId} = req.params;
+
+        //find course with populate students
+        const course = await courseModel.findById(courseId).populate('students', 'name email');
+
+        if(!course){
+            return res.status(404).json({
+                success: false,
+                message: "Course not found"
+            })
+        }
+
+        //check course ownership
+        if(course.professor.toString() !== req.user._id.toString()){
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to access these students"
+            })
+        }
+
+        //send response
+        return res.status(200).json({
+            success: true,
+            message: "Enrolled students fetched successfully",
+            count: course.students.length,
+            students: course.students
+        })
+    } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
