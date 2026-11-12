@@ -14,6 +14,8 @@ const CourseAssignments = () => {
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState("");
   const [editingAssignment, setEditingAssignment] = useState(null);
+  const [trackingData, setTrackingData] = useState({});
+  const [trackingLoading, setTrackingLoading] = useState({});
 
   useEffect(() => {
     const fetchCourseData = async () => {
@@ -33,6 +35,38 @@ const CourseAssignments = () => {
         );
 
         setAssignments(courseAssignments);
+
+        //tracking result
+        const trackingResults = await Promise.all(
+          courseAssignments.map(async (assignment) => {
+            try {
+              setTrackingLoading((prev) => ({
+                ...prev,
+                [assignment._id]: true,
+              }));
+
+              const { data } = await API.get(
+                `/submissions/${assignment._id}/tracking`,
+              );
+
+              return [assignment._id, data];
+            } catch (err) {
+              console.error(
+                `Tracking error for ${assignment.title}:`,
+                err.response?.data || err.message,
+              );
+
+              return [assignment._id, null];
+            } finally {
+              setTrackingLoading((prev) => ({
+                ...prev,
+                [assignment._id]: false,
+              }));
+            }
+          }),
+        );
+
+        setTrackingData(Object.fromEntries(trackingResults));
       } catch (err) {
         setError(
           err.response?.data?.message || "Failed to load course details.",
@@ -207,31 +241,142 @@ const CourseAssignments = () => {
                     Delete
                   </button>
                 </div>
+
+                {/* Submission Tracking */}
+                <div className="mt-6 border-t pt-4">
+                  <h4 className="font-semibold text-gray-800 mb-3">
+                    Submission Tracking
+                  </h4>
+
+                  {trackingLoading[assignment._id] ? (
+                    <p className="text-sm text-gray-500">Loading tracking...</p>
+                  ) : trackingData[assignment._id] ? (
+                    <>
+                      {(() => {
+                        const tracking = trackingData[assignment._id];
+
+                        return (
+                          <>
+                            <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                              <div className="bg-blue-50 p-3 rounded-lg">
+                                <p className="text-xl font-bold text-blue-700">
+                                  {tracking.total}
+                                </p>
+                                <p className="text-xs text-gray-600">Total</p>
+                              </div>
+
+                              <div className="bg-green-50 p-3 rounded-lg">
+                                <p className="text-xl font-bold text-green-700">
+                                  {tracking.submitted}
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                  Submitted
+                                </p>
+                              </div>
+
+                              <div className="bg-orange-50 p-3 rounded-lg">
+                                <p className="text-xl font-bold text-orange-700">
+                                  {tracking.pending}
+                                </p>
+                                <p className="text-xs text-gray-600">Pending</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              {tracking.tracking.map((item, index) => (
+                                <div
+                                  key={
+                                    item.student?._id ||
+                                    item.group?._id ||
+                                    index
+                                  }
+                                  className="border rounded-lg p-3"
+                                >
+                                  <div className="flex justify-between items-center gap-2">
+                                    <p className="font-medium text-sm">
+                                      {assignment.submissionType ===
+                                      "Individual"
+                                        ? item.student?.name
+                                        : item.group?.name}
+                                    </p>
+
+                                    <span
+                                      className={`text-xs px-2 py-1 rounded-full ${
+                                        item.status === "Submitted"
+                                          ? "bg-green-100 text-green-700"
+                                          : "bg-orange-100 text-orange-700"
+                                      }`}
+                                    >
+                                      {item.status}
+                                    </span>
+                                  </div>
+
+                                  {assignment.submissionType === "Group" && (
+                                    <>
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        Leader: {item.group?.leader?.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Members:{" "}
+                                        {item.group?.members?.length || 0}
+                                      </p>
+                                    </>
+                                  )}
+
+                                  {item.status === "Submitted" && (
+                                    <>
+                                      {assignment.submissionType ===
+                                        "Group" && (
+                                        <p className="text-xs text-gray-600 mt-2">
+                                          Acknowledged by:{" "}
+                                          {item.acknowledgedBy?.name || "N/A"}
+                                        </p>
+                                      )}
+
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Submitted on:{" "}
+                                        {item.acknowledgedAt
+                                          ? new Date(
+                                              item.acknowledgedAt,
+                                            ).toLocaleString()
+                                          : "N/A"}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Tracking data unavailable.
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      
-{showForm && (
-  <AssignmentForm
-    key={editingAssignment?._id || "new"}
-    courseId={courseId}
-    initialData={editingAssignment}
-    onCancel={() => {
-      setShowForm(false);
-      setEditingAssignment(null);
-      setFormError("");
-    }}
-    onSubmit={
-      editingAssignment
-        ? handleUpdateAssignment
-        : handleCreateAssignment
-    }
-  />
-)}
-
+      {showForm && (
+        <AssignmentForm
+          key={editingAssignment?._id || "new"}
+          courseId={courseId}
+          initialData={editingAssignment}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingAssignment(null);
+            setFormError("");
+          }}
+          onSubmit={
+            editingAssignment ? handleUpdateAssignment : handleCreateAssignment
+          }
+        />
+      )}
     </div>
   );
 };

@@ -98,14 +98,35 @@ const StudentCourseAssignments = () => {
   }, [courseId]);
 
   //handle acknowledge
+
   const handleAcknowledge = async () => {
     try {
       setSubmitting(true);
       setSubmitError("");
 
-      const { data } = await API.post(
-        `/submissions/${selectedAssignment._id}/acknowledge`,
-      );
+      let data;
+
+      if (selectedAssignment.submissionType === "Group") {
+        if (!myGroup) {
+          setSubmitError(
+            "You are not part of any group. Create or join one to submit this assignment.",
+          );
+          return;
+        }
+
+        const response = await API.post(
+          `/submissions/${selectedAssignment._id}/group-acknowledge`,
+          { groupId: myGroup._id },
+        );
+
+        data = response.data;
+      } else {
+        const response = await API.post(
+          `/submissions/${selectedAssignment._id}/acknowledge`,
+        );
+
+        data = response.data;
+      }
 
       setStatuses((prev) => ({
         ...prev,
@@ -201,113 +222,109 @@ const StudentCourseAssignments = () => {
           <p className="text-gray-500 mt-2">{course?.description}</p>
         </div>
 
-        
-{/* Group Management */}
-<div className="bg-white border rounded-xl p-6 mb-8">
-  <h2 className="text-xl font-bold mb-5">My Group</h2>
+        {/* Group Management */}
+        <div className="bg-white border rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-bold mb-5">My Group</h2>
 
-  {groupError && (
-    <p className="text-red-600 mb-4">{groupError}</p>
-  )}
+          {groupError && <p className="text-red-600 mb-4">{groupError}</p>}
 
-  {myGroup ? (
-    <div className="mb-8">
-      <h3 className="font-semibold text-lg">{myGroup.name}</h3>
+          {myGroup ? (
+            <div className="mb-8">
+              <h3 className="font-semibold text-lg">{myGroup.name}</h3>
 
-      <p className="text-sm text-indigo-600 mt-2">
-        Leader: {myGroup.leader?.name}
-      </p>
+              <p className="text-sm text-indigo-600 mt-2">
+                Leader: {myGroup.leader?.name}
+              </p>
 
-      <h4 className="font-semibold mt-5 mb-3">Members</h4>
+              <h4 className="font-semibold mt-5 mb-3">Members</h4>
 
-      {myGroup.members.map((member) => (
-        <div key={member._id} className="text-gray-600 py-2 border-b">
-          {member.name}
-          {member._id === myGroup.leader?._id && (
-            <span className="text-indigo-600 text-sm ml-2">
-              (Leader)
-            </span>
+              {myGroup.members.map((member) => (
+                <div key={member._id} className="text-gray-600 py-2 border-b">
+                  {member.name}
+                  {member._id === myGroup.leader?._id && (
+                    <span className="text-indigo-600 text-sm ml-2">
+                      (Leader)
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <p className="text-gray-500 mb-5">
+                You are not part of any group in this course. Create or join one
+                to submit this assignment.
+              </p>
+
+              <form onSubmit={handleCreateGroup} className="mb-8">
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="Enter group name"
+                  required
+                  className="border rounded-lg p-3 w-full mb-3"
+                />
+
+                <button
+                  type="submit"
+                  disabled={groupLoading}
+                  className="bg-indigo-600 text-white px-5 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {groupLoading ? "Creating..." : "Create Group"}
+                </button>
+              </form>
+            </>
+          )}
+
+          {/* Available Groups - Always Visible */}
+          <h3 className="font-semibold mb-3">Available Groups</h3>
+
+          {availableGroups.length === 0 ? (
+            <p className="text-gray-400">No groups available yet.</p>
+          ) : (
+            availableGroups.map((group) => {
+              const isJoined = group.members.some(
+                (member) =>
+                  String(member._id) ===
+                  String(currentUser._id || currentUser.id),
+              );
+
+              return (
+                <div
+                  key={group._id}
+                  className="border rounded-lg p-4 mb-3 flex justify-between items-center"
+                >
+                  <div>
+                    <p className="font-medium">{group.name}</p>
+                    <p className="text-sm text-gray-500">
+                      Leader: {group.leader?.name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Members: {group.members.length}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => handleJoinGroup(group._id)}
+                    disabled={groupLoading || isJoined || !!myGroup}
+                    className={`px-4 py-2 rounded-lg text-white ${
+                      isJoined || myGroup
+                        ? "bg-gray-500"
+                        : "bg-green-600 hover:bg-green-500"
+                    }`}
+                  >
+                    {isJoined
+                      ? "Joined"
+                      : myGroup
+                        ? "Already in a group"
+                        : "Join"}
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
-      ))}
-    </div>
-  ) : (
-    <>
-      <p className="text-gray-500 mb-5">
-        You are not part of any group in this course.
-        Create or join one to submit this assignment.
-      </p>
-
-      <form onSubmit={handleCreateGroup} className="mb-8">
-        <input
-          type="text"
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-          placeholder="Enter group name"
-          required
-          className="border rounded-lg p-3 w-full mb-3"
-        />
-
-        <button
-          type="submit"
-          disabled={groupLoading}
-          className="bg-indigo-600 text-white px-5 py-2 rounded-lg disabled:opacity-50"
-        >
-          {groupLoading ? "Creating..." : "Create Group"}
-        </button>
-      </form>
-    </>
-  )}
-
-  {/* Available Groups - Always Visible */}
-  <h3 className="font-semibold mb-3">Available Groups</h3>
-
-  {availableGroups.length === 0 ? (
-    <p className="text-gray-400">No groups available yet.</p>
-  ) : (
-    availableGroups.map((group) => {
-      const isJoined = group.members.some(
-        (member) =>
-          String(member._id) ===
-          String(currentUser._id || currentUser.id)
-      );
-
-      return (
-        <div
-          key={group._id}
-          className="border rounded-lg p-4 mb-3 flex justify-between items-center"
-        >
-          <div>
-            <p className="font-medium">{group.name}</p>
-            <p className="text-sm text-gray-500">
-              Leader: {group.leader?.name}
-            </p>
-            <p className="text-sm text-gray-500">
-              Members: {group.members.length}
-            </p>
-          </div>
-
-          <button
-            onClick={() => handleJoinGroup(group._id)}
-            disabled={groupLoading || isJoined || !!myGroup}
-            className={`px-4 py-2 rounded-lg text-white ${
-              isJoined || myGroup
-                ? "bg-gray-500"
-                : "bg-green-600 hover:bg-green-500"
-            }`}
-          >
-            {isJoined
-              ? "Joined"
-              : myGroup
-                ? "Already in a group"
-                : "Join"}
-          </button>
-        </div>
-      );
-    })
-  )}
-</div>
-
 
         <div className="bg-white border rounded-xl p-6">
           <h2 className="text-xl font-bold mb-6">Course Assignments</h2>
@@ -391,9 +408,46 @@ const StudentCourseAssignments = () => {
                     )}
 
                     {assignment.submissionType === "Group" && (
-                      <p className="text-sm text-gray-500 mt-5">
-                        Group submission will be handled through your group.
-                      </p>
+                      <>
+                        {!myGroup ? (
+                          <p className="text-sm text-orange-600 mt-5">
+                            You are not part of any group. Create or join one to
+                            submit this assignment.
+                          </p>
+                        ) : isSubmitted ? (
+                          <div className="mt-5 text-sm text-green-700">
+                            <p>Group Submitted Successfully!</p>
+                            <p className="mt-1">
+                              Acknowledged by:{" "}
+                              {status.submission?.acknowledgedBy?.name ||
+                                myGroup.leader?.name}
+                            </p>
+                            <p className="mt-1">
+                              Acknowledged on:{" "}
+                              {status.submission?.acknowledgedAt
+                                ? new Date(
+                                    status.submission.acknowledgedAt,
+                                  ).toLocaleString()
+                                : "Submitted"}
+                            </p>
+                          </div>
+                        ) : String(myGroup.leader?._id) ===
+                          String(currentUser._id || currentUser.id) ? (
+                          <button
+                            onClick={() => {
+                              setSelectedAssignment(assignment);
+                              setSubmitError("");
+                            }}
+                            className="mt-5 w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700"
+                          >
+                            I have submitted (Group)
+                          </button>
+                        ) : (
+                          <p className="text-sm text-orange-600 mt-5">
+                            Waiting for group leader to acknowledge submission.
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 );
