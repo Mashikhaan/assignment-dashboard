@@ -5,8 +5,8 @@ import { useAppContext } from './context/AppContext';
 import ProfessorDashboard from './pages/ProfessorDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import Register from './pages/Register';
-
-
+import CourseAssignments from './pages/CourseAssignments';
+import StudentCourseAssignments from "./pages/StudentCourseAssignments";
 
 
 const App = () => {
@@ -23,9 +23,15 @@ const App = () => {
       <Route path="/" element = {currentUser ? (<Navigate to={currentUser.role === "professor" ? "/professor-dashboard" : "/student-dashboard"} />) : (<Login/>)} />
       //professor dashboard route
       <Route path="/professor-dashboard" element={currentUser?.role === "professor" ? (<ProfessorDashboard />) : (<Navigate to="/" replace />)} />
+      //course assignment route
+      <Route path='/professor/courses/:courseId' element={currentUser?.role === "professor" ? (<CourseAssignments />) : (<Navigate to="/" replace />)} />
       //student dashboard route
       <Route path="/student-dashboard" element={currentUser?.role === "student" ? (<StudentDashboard />) : (<Navigate to="/" replace />)} />
+
+      //student course assignment route
+      <Route path='/student/courses/:courseId' element={currentUser?.role === "student" ? (<StudentCourseAssignments />) : (<Navigate to="/" replace />)} />
     </Routes>
+    
   )
 }
 

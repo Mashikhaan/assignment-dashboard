@@ -1,22 +1,50 @@
 import React from "react";
 import { useAppContext } from "../context/AppContext.jsx";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import AssignmentTable from "../components/admin/AssignmentTable.jsx";
 import AssignmentForm from "../components/admin/AssignmentForm.jsx";
-import { users } from "../data/seedData.js";
+import CourseForm from "../components/admin/CourseForm.jsx";
+import { useNavigate } from "react-router-dom";
 
 const ProfessorDashboard = () => {
   const {
     currentUser,
     logout,
+    courses,
+    addCourse,
+    getCourses,
+    deleteCourse,
     assignments,
     addAssignment,
     updateAssignment,
     deleteAssignment,
   } = useAppContext();
 
+  const navigate = useNavigate();
+
   const [showForm, setShowForm] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
+  const [showCourseForm, setShowCourseForm] = useState(false);
+const [courseLoading, setCourseLoading] = useState(true);
+const [courseError, setCourseError] = useState("");
+
+
+//fetch get courses after open dashboard
+useEffect(() => {
+  const fetchCourses = async () => {
+    try {
+      await getCourses();
+    } catch (error) {
+      setCourseError(
+        error.response?.data?.message || "Failed to load courses"
+      );
+    } finally {
+      setCourseLoading(false);
+    }
+  };
+
+  fetchCourses();
+}, []);
 
   // Only show assignments created by the logged-in admin
   const myAssignments = assignments.filter(
@@ -46,6 +74,18 @@ const ProfessorDashboard = () => {
     }
   };
 
+  //handle create course
+  const handleCreateCourse = async (formData) => {
+  try {
+    await addCourse(formData);
+    setShowCourseForm(false);
+  } catch (error) {
+    setCourseError(
+      error.response?.data?.message || "Failed to create course"
+    );
+  }
+};
+
   // Statistics:--
 
   const totalStudents = 5;
@@ -54,24 +94,24 @@ const ProfessorDashboard = () => {
 
   //total assigned assignments
   const totalAssigned = myAssignments.reduce((total, assignment) => {
-    total + assignment.assignedTo.length;
-  }, 0);
+  return total + (assignment.assignedTo?.length || 0);
+}, 0);
 
   //total submitted assignments
   const totalSubmitted = myAssignments.reduce((total, assignment) => {
-    total +
-      Object.values(assignment.submissions).filter(
-        (status) => status === "Submitted",
-      ).length;
-  }, 0);
+  const submittedCount = Object.values(assignment.submissions || {}).filter(
+    (status) => status.toLowerCase() === "submitted"
+  ).length;
+
+  return total + submittedCount;
+}, 0);
 
   //completion rate
   const completionRate = totalAssigned
     ? Math.round((totalSubmitted / totalAssigned) * 100)
     : 0;
 
-  const students = users.filter((user) => user.role === "student");
-
+  const students = []
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Top Navbar */}
@@ -92,14 +132,82 @@ const ProfessorDashboard = () => {
 
       {/* Main Content */}
       <main className="p-6 md:p-8 max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
+        
+        {/* courses tracking */}
+<div className="mb-8">
+    <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
+    <p className="text-gray-500 mt-2">
+      Manage courses, assignments and track student progress.
+    </p>
+  </div>
 
-          <p className="text-gray-500 mt-2">
-            Manage assignments and track student progress.
-          </p>
-        </div>
+  {/* My Courses Section */}
+  <div className="bg-white rounded-xl shadow-sm border p-6">
 
+    <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+      <div>
+        <h3 className="text-xl font-bold text-gray-800">My Courses</h3>
+        <p className="text-gray-500 text-sm mt-1">
+          Manage your courses.
+        </p>
+      </div>
+
+      <button
+        onClick={() => setShowCourseForm(true)}
+        className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 cursor-pointer"
+      >
+        + Create Course
+      </button>
+    </div>
+
+    {courseError && (
+      <p className="text-red-500 mb-4">{courseError}</p>
+    )}
+
+    {courseLoading ? (
+      <p className="text-gray-500 text-center py-8">
+        Loading courses...
+      </p>
+    ) : courses.length > 0 ? (
+
+      
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+  {courses.map((course) => (
+    <div
+      key={course._id}
+      onClick={() => navigate(`/professor/courses/${course._id}`)}
+      className="border rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer"
+    >
+      <h4 className="font-bold text-lg text-gray-800">
+        {course.title}
+      </h4>
+
+      <p className="text-sm text-indigo-600 mt-1">
+        {course.courseCode}
+      </p>
+
+      <p className="text-sm text-gray-500 mt-3">
+        {course.description}
+      </p>
+
+      <p className="text-sm text-gray-600 mt-4">
+        {course.students?.length || 0} Enrolled Students
+      </p>
+    </div>
+  ))}
+</div>
+
+
+    ) : (
+      <div className="text-center py-10 text-gray-400">
+        <p className="font-medium">No courses created yet.</p>
+        <p className="text-sm mt-2">
+          Click on Create Course to get started.
+        </p>
+      </div>
+    )}
+
+  </div>
         {/* Statistics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <div className="bg-white p-6 rounded-xl shadow-sm border">
@@ -291,6 +399,21 @@ const ProfessorDashboard = () => {
           </div>
         </div>
       )}
+
+      {showCourseForm && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-xl w-full max-w-lg p-6">
+      <h2 className="text-xl font-bold mb-5">
+        Create New Course
+      </h2>
+
+      <CourseForm
+        onSubmit={handleCreateCourse}
+        onCancel={() => setShowCourseForm(false)}
+      />
+    </div>
+  </div>
+)}
     </div>
   );
 };

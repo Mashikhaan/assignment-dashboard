@@ -1,50 +1,52 @@
+
 import { useState } from "react";
-import { users } from "../../data/seedData";
 
-const AssignmentForm = ({onSubmit, onCancel, initialData,}) => {
+const getLocalDateTime = (date) => {
+  if (!date) return "";
 
-  const [title, setTitle] = useState( initialData?.title || "" );
+  const d = new Date(date);
+  const offset = d.getTimezoneOffset() * 60000;
 
-  const [description, setDescription] = useState( initialData?.description || "" );
+  return new Date(d.getTime() - offset)
+    .toISOString()
+    .slice(0, 16);
+};
 
-  const [dueDate, setDueDate] = useState( initialData?.dueDate || "" );
+const AssignmentForm = ({
+  onSubmit,
+  onCancel,
+  initialData,
+  courseId,
+}) => {
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [description, setDescription] = useState(
+    initialData?.description || ""
+  );
+  const [dueDate, setDueDate] = useState(
+    getLocalDateTime(initialData?.dueDate)
+  );
+  const [oneDriveLink, setOneDriveLink] = useState(
+    initialData?.oneDriveLink || ""
+  );
+  const [submissionType, setSubmissionType] = useState(
+    initialData?.submissionType || "Individual"
+  );
 
-  const [driveLink, setDriveLink] = useState( initialData?.driveLink || "" );
-
-  const [assignmentType, setAssignmentType] = useState(
-    initialData?.assignedTo.length === users.filter(
-      (user) => user.role === "student"
-    ).length ? "all" : "selected" );
-
-  const [selectedStudents, setSelectedStudents] = useState( initialData?.assignedTo || [] );
-
-  const students = users.filter( (user) => user.role === "student" );
-
-  //handle change for selected students
-  const handleStudentChange = (studentId) => {
-    setSelectedStudents((prev) =>
-      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId] );
-  };
-
-  //handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const assignedTo = assignmentType === "all"? students.map((student) => student.id) : selectedStudents;
-
-    if (assignedTo.length === 0) {
-      alert("Please select at least one student.");
-      return;
-    }
-
-    //call the onSubmit function passed as a prop with form data
-    onSubmit({title,description, dueDate, driveLink,assignedTo, });
-
+    onSubmit({
+      title,
+      description,
+      dueDate,
+      oneDriveLink,
+      submissionType,
+      course: courseId,
+    });
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-
       <form
         onSubmit={handleSubmit}
         className="bg-white w-full max-w-lg rounded-2xl p-6 space-y-4 my-auto"
@@ -57,7 +59,6 @@ const AssignmentForm = ({onSubmit, onCancel, initialData,}) => {
           <label className="block mb-1 font-medium">
             Assignment Title
           </label>
-
           <input
             type="text"
             value={title}
@@ -72,27 +73,25 @@ const AssignmentForm = ({onSubmit, onCancel, initialData,}) => {
           <label className="block mb-1 font-medium">
             Description
           </label>
-
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
             rows="3"
             className="w-full border rounded-lg p-3"
-            placeholder="Enter description"
+            placeholder="Enter assignment description"
           />
         </div>
 
         <div>
           <label className="block mb-1 font-medium">
-            Due Date
+            Deadline (Date & Time)
           </label>
-
           <input
-            type="date"
+            type="datetime-local"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            min={new Date().toLocaleDateString("en-CA")}
+            min={getLocalDateTime(new Date())}
             required
             className="w-full border rounded-lg p-3"
           />
@@ -100,52 +99,31 @@ const AssignmentForm = ({onSubmit, onCancel, initialData,}) => {
 
         <div>
           <label className="block mb-1 font-medium">
-            Google Drive Link
+            OneDrive Link
           </label>
-
           <input
             type="url"
-            value={driveLink}
-            onChange={(e) => setDriveLink(e.target.value)}
+            value={oneDriveLink}
+            onChange={(e) => setOneDriveLink(e.target.value)}
             required
             className="w-full border rounded-lg p-3"
-            placeholder="https://drive.google.com/..."
+            placeholder="https://..."
           />
         </div>
 
         <div>
-          <label className="block mb-2 font-medium">
-            Assign To
+          <label className="block mb-1 font-medium">
+            Submission Type
           </label>
-
           <select
-            value={assignmentType}
-            onChange={(e) => setAssignmentType(e.target.value)}
+            value={submissionType}
+            onChange={(e) => setSubmissionType(e.target.value)}
             className="w-full border rounded-lg p-3"
           >
-            <option value="all">All Students</option>
-            <option value="selected">Selected Students</option>
+            <option value="Individual">Individual</option>
+            <option value="Group">Group</option>
           </select>
         </div>
-
-        {assignmentType === "selected" && (
-          <div className="border rounded-lg p-3 space-y-3">
-            {students.map((student) => (
-              <label
-                key={student.id}
-                className="flex items-center gap-3"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedStudents.includes(student.id)}
-                  onChange={() => handleStudentChange(student.id)}
-                />
-
-                <span>{student.name}</span>
-              </label>
-            ))}
-          </div>
-        )}
 
         <div className="flex justify-end gap-3 pt-3">
           <button
@@ -163,7 +141,6 @@ const AssignmentForm = ({onSubmit, onCancel, initialData,}) => {
             {initialData ? "Save Changes" : "Create Assignment"}
           </button>
         </div>
-
       </form>
     </div>
   );

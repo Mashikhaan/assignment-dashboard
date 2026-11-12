@@ -1,36 +1,32 @@
-import React from "react";
+
+import React, { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const StudentDashboard = () => {
-  const { currentUser, logout, assignments, submitAssignment } =
-    useAppContext();
+  const { currentUser, logout, courses, getCourses } = useAppContext();
+  const navigate = useNavigate();
 
-  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Find assignments assigned to the logged-in student
-  const myAssignments = assignments.filter((assignment) =>
-    assignment.assignedTo.includes(currentUser.id),
-  );
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        await getCourses();
+      } catch (err) {
+        setError(
+          err.response?.data?.message || "Failed to load your courses."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  //pending assignments count
-  const pendingCount = myAssignments.filter(
-    (assignment) => assignment.submissions[currentUser.id] === "pending",
-  ).length;
-
-  //submitted assignments count
-  const submittedCount = myAssignments.filter(
-    (assignment) => assignment.submissions[currentUser.id] === "Submitted",
-  ).length;
-
-  //total assignments
-  const totalAssignments = myAssignments.length;
-
-  //progress percentage
-  const progressPercentage =
-    totalAssignments === 0
-      ? 0
-      : Math.round((submittedCount / totalAssignments) * 100);
+    fetchCourses();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -39,7 +35,9 @@ const StudentDashboard = () => {
         <h1 className="text-2xl font-bold text-indigo-600">Joineazy</h1>
 
         <div className="flex items-center gap-4">
-          <span className="font-medium text-gray-700">{currentUser.name}</span>
+          <span className="font-medium text-gray-700">
+            {currentUser?.name}
+          </span>
 
           <button
             onClick={logout}
@@ -50,181 +48,63 @@ const StudentDashboard = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="p-6 md:p-8 max-w-7xl mx-auto">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-800">
             Student Dashboard
           </h2>
-
           <p className="text-gray-500 mt-2">
-            View your assignments and track your progress.
+            View your enrolled courses and assignments.
           </p>
         </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <p className="text-gray-500">Total Assignments</p>
-            <h3 className="text-3xl font-bold mt-3">{myAssignments.length}</h3>
-          </div>
+        {/* Enrolled Courses */}
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-6">
+            My Courses
+          </h3>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <p className="text-gray-500">Pending</p>
-            <h3 className="text-3xl font-bold mt-3 text-orange-500">
-              {pendingCount}
-            </h3>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <p className="text-gray-500">Submitted</p>
-            <h3 className="text-3xl font-bold mt-3 text-green-600">
-              {submittedCount}
-            </h3>
-          </div>
-
-          {/* Overall Progress */}
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800">
-                  Overall Progress
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Track your assignment completion
-                </p>
-              </div>
-
-              <span className="text-2xl font-bold text-blue-600">
-                {progressPercentage}%
-              </span>
-            </div>
-
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
-            </div>
-
-            <div className="flex justify-between text-sm text-gray-500 mt-3">
-              <span>{submittedCount} Submitted</span>
-              <span>{pendingCount} Pending</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Assignments */}
-        <div className="bg-white rounded-xl shadow-sm border mt-8 p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-800">My Assignments</h3>
-
-            <p className="text-gray-500 text-sm mt-1">
-              Assignments assigned to you.
+          {loading ? (
+            <p className="text-gray-500 text-center py-10">
+              Loading your courses...
             </p>
-          </div>
-
-          {myAssignments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {myAssignments.map((assignment) => {
-                const status = assignment.submissions[currentUser.id];
-
-                return (
-                  <div
-                    key={assignment.id}
-                    className="border rounded-xl p-5 hover:shadow-md transition"
-                  >
-                    <div className="flex justify-between items-start gap-3">
-                      <h4 className="text-lg font-semibold text-gray-800">
-                        {assignment.title}
-                      </h4>
-
-                      <span
-                        className={`text-xs px-3 py-1 rounded-full ${
-                          status === "Submitted"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-orange-100 text-orange-700"
-                        }`}
-                      >
-                        {status}
-                      </span>
-                    </div>
-
-                    <p className="text-gray-500 text-sm mt-3">
-                      {assignment.description}
-                    </p>
-
-                    <p className="text-sm text-gray-600 mt-4">
-                      <strong>Due Date:</strong> {assignment.dueDate}
-                    </p>
-
-                    {assignment.driveLink && (
-                      <a
-                        href={assignment.driveLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-block text-indigo-600 hover:underline mt-4 text-sm font-medium"
-                      >
-                        View Assignment →
-                      </a>
-                    )}
-
-                    {status === "pending" && (
-                      <button
-                        onClick={() => setSelectedAssignment(assignment)}
-                        className="mt-5 w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 cursor-pointer"
-                      >
-                        Submit Assignment
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+          ) : error ? (
+            <p className="text-red-600 text-center py-10">{error}</p>
+          ) : courses.length === 0 ? (
+            <p className="text-gray-400 text-center py-10">
+              You are not enrolled in any course yet.
+            </p>
           ) : (
-            <div className="text-center py-12 text-gray-400">
-              <p className="text-lg font-medium">
-                No assignments assigned yet.
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {courses.map((course) => (
+                <div
+                  key={course._id}
+                  onClick={() =>
+                    navigate(`/student/courses/${course._id}`)
+                  }
+                  className="border rounded-xl p-5 hover:shadow-md transition cursor-pointer"
+                >
+                  <h4 className="text-lg font-semibold text-gray-800">
+                    {course.title}
+                  </h4>
 
-              <p className="text-sm mt-2">Your assignments will appear here.</p>
+                  <p className="text-sm text-indigo-600 mt-2">
+                    {course.courseCode}
+                  </p>
+
+                  <p className="text-gray-500 text-sm mt-3">
+                    {course.description || "No course description available."}
+                  </p>
+
+                  <p className="text-indigo-600 font-medium text-sm mt-5">
+                    View Assignments →
+                  </p>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </main>
-
-      {/*Confirm Assignment submission  */}
-      {selectedAssignment && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold">Confirm Submission</h2>
-
-            <p className="mt-3">
-              Are you sure you want to submit{" "}
-              <strong>{selectedAssignment.title}</strong>?
-            </p>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                className="text-gray-500 hover:text-gray-700 px-4 py-2 border rounded-lg cursor-pointer"
-                onClick={() => setSelectedAssignment(null)}
-              >
-                Cancel
-              </button>
-
-              <button
-                className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 cursor-pointer"
-                onClick={() => {
-                  submitAssignment(selectedAssignment.id, currentUser.id);
-                  setSelectedAssignment(null);
-                }}
-              >
-                Confirm Submit
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
