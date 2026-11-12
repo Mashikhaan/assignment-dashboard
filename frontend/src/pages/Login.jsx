@@ -1,39 +1,54 @@
-import React from 'react'
-import { useState } from 'react';
-import { users } from '../data/seedData.js';
-import { useAppContext } from '../context/AppContext.jsx';
-import { useNavigate } from 'react-router-dom';
+
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAppContext } from "../context/AppContext.jsx";
 
 const Login = () => {
+  const { login } = useAppContext();
+  const navigate = useNavigate();
 
-    const[selectedUser, setSelectedUser] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
 
-    const { login } = useAppContext();
-    
-    const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-    //handle login form submission
-    const handleLogin = (e) => {
-        e.preventDefault();
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-        //find the selected user from the users array
-        const userDetails = users.find(
-            (user) => user.id === selectedUser
-        )
+    try {
+      const data = await login(
+        formData.email,
+        formData.password
+      );
 
-        if(!userDetails){
-            alert("Please select a user")
-        }
+      const user = data.user;
 
-        //call the login function from the context
-        login(userDetails.id);
+      if (user.role === "professor") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/student-dashboard");
+      }
 
-        //navigate to the dashboard page
-        navigate(userDetails.role === "admin" ? "/admin-dashboard" : "/student-dashboard");
+    } catch (error) {
+      setError(
+        error.response?.data?.message || "Login failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
-
-
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
@@ -53,37 +68,63 @@ const Login = () => {
         <form onSubmit={handleLogin}>
 
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select your account
+            Email
           </label>
 
-          <select
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="Enter your email"
+            className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500"
             required
-          >
-            <option value="">Choose an account</option>
+          />
 
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.role})
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mt-5 mb-2">
+            Password
+          </label>
+
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Enter your password"
+            className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500"
+            required
+          />
+
+          {error && (
+            <p className="text-red-500 text-sm mt-3">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg mt-6 hover:bg-indigo-700 transition-colors font-medium cursor-pointer"
+            disabled={loading}
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg mt-6 hover:bg-indigo-700 transition-colors font-medium cursor-pointer disabled:opacity-60"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
 
         </form>
+
+        <p className="text-center text-sm text-gray-600 mt-6">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="text-indigo-600 font-medium hover:underline"
+          >
+            Register
+          </Link>
+        </p>
 
       </div>
 
     </div>
   );
-}
+};
 
-export default Login
+export default Login;

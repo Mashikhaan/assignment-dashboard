@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import { users} from "../data/seedData.js";
+import API from "../services/api.js";
 import { useState, useContext, useEffect } from "react";
 
 
@@ -9,13 +9,9 @@ const AppContext = createContext();
 //create a provider component for the app context
 export const AppProvider = ({ children }) => {
 
-    //current user state, initialized from local storage if available
-    const [currentUser, setCurrentUser] = useState(() => {
-        //get the current user from the local storage
-        const savedUser = localStorage.getItem("currentUser");
-
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    //current user state, loading state
+    const [currentUser, setCurrentUser] = useState(null);
+const [loading, setLoading] = useState(true);
 
 
     //current assignment state, initialized from local storage if available
@@ -26,33 +22,71 @@ export const AppProvider = ({ children }) => {
         return savedAssignments ? JSON.parse(savedAssignments) : [];
     })
 
+     // Check logged-in user
+    useEffect(() => {
+        const getUser = async () => {
+            try {
+                const { data } = await API.get("/auth/me");
+                setCurrentUser(data.user);
+            } catch (error) {
+                setCurrentUser(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        getUser();
+    }, []);
+
+    //register function
+    const register = async (name, email, password, role) => {
+    try {
+        const { data } = await API.post("/auth/register", {
+            name,
+            email,
+            password,
+            role
+        });
+
+        setCurrentUser(data.user);
+
+        return data;
+    } catch (error) {
+        throw error;
+    }
+};
+
     //set assignments in local storage whenever the assignments state changes
     useEffect(() => {
         localStorage.setItem("assignments", JSON.stringify(assignments))
     }, [assignments])
 
     //login function
-    const login = (userId) =>{
-        const selectedUser = users.find(
-            (user) => user.id === userId
-        )
+    const login = async (email, password) => {
+    try {
+        const { data } = await API.post("/auth/login", {
+            email,
+            password
+        });
 
-        if(!selectedUser){
-            alert("User not found");
-            return;
-        }
+        setCurrentUser(data.user);
 
-        setCurrentUser(selectedUser);
-
-        //save current user in local storage
-        localStorage.setItem("currentUser", JSON.stringify(selectedUser));
+        return data;
+    } catch (error) {
+        throw error;
     }
+};
 
     //logout function
-    const logout = () => {
+   const logout = async () => {
+    try {
+        await API.post("/auth/logout");
         setCurrentUser(null);
-        localStorage.removeItem("currentUser");
+    } catch (error) {
+        console.log(error);
+        throw error;
     }
+};
 
     //Add Assignment function
     const addAssignment = (assignmentData) => {
@@ -96,7 +130,7 @@ export const AppProvider = ({ children }) => {
     }
 
     return (
-        <AppContext.Provider value={{currentUser, login, logout, assignments, addAssignment, updateAssignment, deleteAssignment, submitAssignment}}>
+        <AppContext.Provider value={{currentUser,loading,register, login, logout, assignments, addAssignment, updateAssignment, deleteAssignment, submitAssignment}}>
             {children}
         </AppContext.Provider>
     )

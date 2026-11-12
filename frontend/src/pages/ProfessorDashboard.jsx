@@ -1,11 +1,11 @@
 import React from "react";
-import { useAppContext } from "../context/AppContext";
+import { useAppContext } from "../context/AppContext.jsx";
 import { useState } from "react";
-import AssignmentTable from "../components/admin/AssignmentTable";
-import AssignmentForm from "../components/admin/AssignmentForm";
+import AssignmentTable from "../components/admin/AssignmentTable.jsx";
+import AssignmentForm from "../components/admin/AssignmentForm.jsx";
 import { users } from "../data/seedData.js";
 
-const AdminDashboard = () => {
+const ProfessorDashboard = () => {
   const {
     currentUser,
     logout,
@@ -295,4 +295,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default ProfessorDashboard;
