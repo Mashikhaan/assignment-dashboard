@@ -7,28 +7,31 @@ import StudentDashboard from './pages/StudentDashboard';
 import Register from './pages/Register';
 import CourseAssignments from './pages/CourseAssignments';
 import StudentCourseAssignments from "./pages/StudentCourseAssignments";
-
+import Home from './pages/Home';
 
 const App = () => {
   const { currentUser } = useAppContext();
   return (
     <Routes>
-      //register page,if user login show according to role
+      {/* register page,if user login show according to role */}
       <Route path="/register" element = {currentUser ? (<Navigate to={currentUser.role === "professor" ? "/professor-dashboard" : "/student-dashboard"} />) : (<Register/>)} />
 
-     //login page
+     {/* login page */}
      <Route path="/login" element = {currentUser ? (<Navigate to={currentUser.role === "professor" ? "/professor-dashboard" : "/student-dashboard"} />) : (<Login/>)} />
      
-      //if the user is logged in, redirect to the dashboard page, otherwise show the login page
-      <Route path="/" element = {currentUser ? (<Navigate to={currentUser.role === "professor" ? "/professor-dashboard" : "/student-dashboard"} />) : (<Login/>)} />
-      //professor dashboard route
+      {/* if the user is logged in, redirect to the dashboard page, otherwise show the login page */}
+      <Route path="/" element = {currentUser ? (<Navigate to={currentUser.role === "professor" ? "/professor-dashboard" : "/student-dashboard"} />) : (<Home/>)} />
+
+      {/* professor dashboard route */}
       <Route path="/professor-dashboard" element={currentUser?.role === "professor" ? (<ProfessorDashboard />) : (<Navigate to="/" replace />)} />
-      //course assignment route
+
+      {/* course assignment route */}
       <Route path='/professor/courses/:courseId' element={currentUser?.role === "professor" ? (<CourseAssignments />) : (<Navigate to="/" replace />)} />
-      //student dashboard route
+
+      {/* student dashboard route */}
       <Route path="/student-dashboard" element={currentUser?.role === "student" ? (<StudentDashboard />) : (<Navigate to="/" replace />)} />
 
-      //student course assignment route
+      {/* student course assignment route */}
       <Route path='/student/courses/:courseId' element={currentUser?.role === "student" ? (<StudentCourseAssignments />) : (<Navigate to="/" replace />)} />
     </Routes>
     
