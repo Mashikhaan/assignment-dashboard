@@ -1,212 +1,37 @@
 # Joineazy Dashboard
 
-Joineazy is a role-based course and assignment management application. It has separate dashboards for professors and students, with a React frontend and an Express/MongoDB backend.
+Joineazy Dashboard is a role-based course and assignment management app for professors and students.
 
 ## Features
 
-### Authentication and roles
+- Student and professor registration/login
+- Role-based access control
+- Course creation and enrollment
+- Assignment creation and tracking
+- Student group creation and joining
+- Assignment acknowledgment and status tracking
+- Separate dashboards for professor and student users
 
-- Register and log in as a professor or student.
-- Keep the login session in an HTTP-only cookie.
-- Redirect users to a dashboard based on their role.
-- Restrict dashboard pages and API operations by role.
+## Tech Stack
 
-### Professor dashboard
+- React
+- Vite
+- React Router
+- Node.js
+- Express
+- MongoDB + Mongoose
+- JWT + HTTP-only cookies
+- bcryptjs
+- Tailwind CSS
+- Axios
 
-- Create and view courses.
-- View enrolled students in a course.
-- Create, update, and delete assignments.
-- Choose individual or group submission types.
-- Set assignment due dates and OneDrive links.
-- Track assignment submission acknowledgements.
-
-### Student dashboard
-
-- View enrolled courses and their assignments.
-- Enroll in courses.
-- Create or join a group for a course.
-- Acknowledge individual or group assignment submissions.
-- Check assignment submission status.
-
-> Submission acknowledgement records a submission in the application. File uploading is not currently implemented.
-
-## Tech stack
-
-| Technology | Purpose |
-|---|---|
-| React | Frontend UI |
-| Vite | Frontend development server and build tool |
-| React Router | Frontend routing |
-| Tailwind CSS | Styling |
-| Axios | Frontend API requests |
-| Node.js | Backend runtime |
-| Express | Backend API |
-| MongoDB and Mongoose | Database and data models |
-| JWT and HTTP-only cookies | Authentication |
-| bcryptjs | Password hashing |
-
-## Prerequisites
-
-- Node.js and npm
-- MongoDB, either installed locally or available through MongoDB Atlas
-- Git
-
-## Getting started
-
-The project has separate `frontend` and `backend` applications. Install and run each one in its own terminal.
-
-### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd joineazy-dashboard
-```
-
-### 2. Configure the backend
-
-Create `backend/.env` with the following values:
-
-```env
-PORT=3000
-MONGO_URI=<your-mongodb-connection-string>
-JWT_SECRET=<a-long-random-secret>
-FRONTEND_URL=http://localhost:5173
-```
-
-Keep `.env` private and do not commit real credentials or secrets.
-
-> **Port note:** The frontend API client currently uses `http://localhost:3000/api`. The backend defaults to port `5000` unless `PORT` is set. The example above sets `PORT=3000` so the frontend and backend match. Alternatively, update the frontend API base URL to use the backend's port.
-
-### 3. Install backend dependencies and start the server
-
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-The backend uses `nodemon` for development. To start it without the development watcher, use:
-
-```bash
-npm start
-```
-
-The health-check endpoint is available at:
-
-```text
-http://localhost:3000/health
-```
-
-### 4. Install frontend dependencies and start the app
-
-In a second terminal, from the repository root:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open the URL printed by Vite, usually:
-
-```text
-http://localhost:5173
-```
-
-## Available scripts
-
-### Frontend
-
-Run these commands from `frontend/`:
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the Vite development server |
-| `npm run build` | Create a production build |
-| `npm run preview` | Preview the production build locally |
-| `npm run lint` | Run ESLint |
-
-### Backend
-
-Run these commands from `backend/`:
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the backend with nodemon |
-| `npm start` | Start the backend with Node.js |
-
-## Application routes
-
-| Frontend route | Access | Description |
-|---|---|---|
-| `/` | Public or authenticated | Login page, or redirect to the role-specific dashboard |
-| `/login` | Public or authenticated | Login page, or redirect to the role-specific dashboard |
-| `/register` | Public or authenticated | Registration page, or redirect to the role-specific dashboard |
-| `/professor-dashboard` | Professor | Professor dashboard |
-| `/professor/courses/:courseId` | Professor | Course assignments |
-| `/student-dashboard` | Student | Student dashboard |
-| `/student/courses/:courseId` | Student | Student course assignments |
-
-## API overview
-
-All API routes use the `/api` prefix unless noted otherwise. Authenticated requests use the login cookie.
-
-### Authentication
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Public | Register a student or professor |
-| `POST` | `/api/auth/login` | Public | Log in |
-| `GET` | `/api/auth/me` | Authenticated | Get the current user |
-| `POST` | `/api/auth/logout` | Authenticated | Log out |
-
-### Courses
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `GET` | `/api/courses` | Authenticated | Get courses available to the current user |
-| `POST` | `/api/courses/create` | Professor | Create a course |
-| `GET` | `/api/courses/:courseId` | Authenticated | Get a course |
-| `PUT` | `/api/courses/:courseId` | Professor | Update a course |
-| `DELETE` | `/api/courses/:courseId` | Professor | Delete a course |
-| `POST` | `/api/courses/:courseId/enroll` | Student | Enroll in a course |
-| `GET` | `/api/courses/:courseId/students` | Professor | Get enrolled students |
-
-### Assignments
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `GET` | `/api/assignment` | Authenticated | Get assignments visible to the current user |
-| `POST` | `/api/assignment/create` | Professor | Create an assignment |
-| `GET` | `/api/assignment/:assignmentId` | Authenticated | Get one assignment |
-| `PUT` | `/api/assignment/:assignmentId` | Professor | Update an assignment |
-| `DELETE` | `/api/assignment/:assignmentId` | Professor | Delete an assignment |
-
-### Groups
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `POST` | `/api/groups/create` | Student | Create a group for a course |
-| `POST` | `/api/groups/:groupId/join` | Student | Join a group |
-| `GET` | `/api/groups/:groupId` | Student | Get group details |
-| `GET` | `/api/groups/course/:courseId` | Student | List groups in a course |
-
-### Submissions
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `POST` | `/api/submissions/:assignmentId/acknowledge` | Student | Acknowledge an individual assignment |
-| `POST` | `/api/submissions/:assignmentId/group-acknowledge` | Student | Acknowledge a group assignment |
-| `GET` | `/api/submissions/:assignmentId/status` | Student | Check the student's assignment status |
-| `GET` | `/api/submissions/:assignmentId/tracking` | Professor | View assignment submission tracking |
-
-## Project structure
+## Project Structure
 
 ```text
 joineazy-dashboard/
 ├── backend/
-│   ├── server.js
 │   ├── package.json
+│   ├── server.js
 │   └── src/
 │       ├── app.js
 │       ├── config/
@@ -215,49 +40,150 @@ joineazy-dashboard/
 │       ├── middleware/
 │       ├── models/
 │       └── routes/
-└── frontend/
-    ├── index.html
-    ├── package.json
-    ├── vite.config.js
-    └── src/
-        ├── App.jsx
-        ├── main.jsx
-        ├── index.css
-        ├── assets/
-        ├── components/
-        │   └── admin/
-        ├── context/
-        │   └── AppContext.jsx
-        ├── data/
-        ├── pages/
-        │   ├── CourseAssignments.jsx
-        │   ├── Login.jsx
-        │   ├── ProfessorDashboard.jsx
-        │   ├── Register.jsx
-        │   ├── StudentCourseAssignments.jsx
-        │   └── StudentDashboard.jsx
-        └── services/
-            └── api.js
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── index.html
+│   └── src/
+│       ├── App.jsx
+│       ├── assets/
+│       ├── components/
+│       ├── context/
+│       ├── data/
+│       ├── pages/
+│       ├── services/
+│       ├── index.css
+│       └── main.jsx
+├── README.md
+└── .gitignore
 ```
 
-## Authentication and access control
+## Prerequisites
 
-The backend hashes passwords before storing them and issues a JWT in an HTTP-only cookie after registration or login. Protected API routes use authentication middleware; professor- and student-specific operations also check the user's role.
+- Node.js and npm
+- MongoDB running locally or in MongoDB Atlas
+- Git
 
-The frontend uses the authenticated user's role to show the appropriate dashboard and restrict dashboard routes. Authorization is enforced by the backend as well as by the frontend.
+## Setup
 
-## Current limitations
+### 1. Clone the repo
 
-- Assignment submissions are acknowledged in the app; uploading files is not implemented.
-- The frontend API base URL is currently set to `http://localhost:3000/api`. It must match the backend port.
-- The frontend and backend require a running MongoDB database.
-- No automated test script is currently defined in the package manifests.
+```bash
+git clone <repository-url>
+cd joineazy-dashboard
+```
 
-## License
+### 2. Backend configuration
 
-No license is currently specified for this project. Check with the repository owner before redistributing or reusing the code.
+Create a `backend/.env` file:
 
-## 👨‍💻 Author
+```env
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/joineazy-dashboard
+JWT_SECRET=your_secret_key_here
+FRONTEND_URL=http://localhost:5173
+NODE_ENV=development
+```
+
+### 3. Start backend
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Health check:
+
+```text
+http://localhost:5000/health
+```
+
+### 4. Frontend configuration
+
+Create a `frontend/.env` file:
+
+```env
+VITE_BACKEND_URL=http://localhost:5000/api
+```
+
+### 5. Start frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open the local Vite URL, usually:
+
+```text
+http://localhost:5173
+```
+
+## Main Routes
+
+### Frontend
+
+- `/` - landing page
+- `/login` - login page
+- `/register` - registration page
+- `/professor-dashboard` - professor dashboard
+- `/student-dashboard` - student dashboard
+- `/professor/courses/:courseId` - professor course assignments
+- `/student/courses/:courseId` - student course assignments
+
+### Backend API
+
+#### Auth
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
+
+#### Courses
+
+- `POST /api/courses/create`
+- `GET /api/courses`
+- `GET /api/courses/explore`
+- `GET /api/courses/:courseId`
+- `PUT /api/courses/:courseId`
+- `DELETE /api/courses/:courseId`
+- `POST /api/courses/:courseId/enroll`
+- `GET /api/courses/:courseId/students`
+
+#### Assignments
+
+- `POST /api/assignment/create`
+- `GET /api/assignment`
+- `GET /api/assignment/:assignmentId`
+- `PUT /api/assignment/:assignmentId`
+- `DELETE /api/assignment/:assignmentId`
+
+#### Groups
+
+- `POST /api/groups/create`
+- `POST /api/groups/:groupId/join`
+- `GET /api/groups/:groupId`
+- `GET /api/groups/course/:courseId`
+
+#### Submissions
+
+- `POST /api/submissions/:assignmentId/acknowledge`
+- `POST /api/submissions/:assignmentId/group-acknowledge`
+- `GET /api/submissions/:assignmentId/status`
+- `GET /api/submissions/:assignmentId/tracking`
+
+## Notes
+
+- File upload feature is not implemented in the current version.
+- Authentication is handled using JWT stored in an HTTP-only cookie.
+- Backend role checks protect professor-only and student-only routes.
+
+## Author
+
+Joineazy Dashboard
 
 **MOHD MASIHULLA**
 
