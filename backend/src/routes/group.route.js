@@ -38,6 +38,11 @@ groupRouter.get("/:groupId", authMiddleware,
 
 
 //get group by course route
+/**
+ * @route GET /api/groups/course/:courseId
+ * @desc Get groups by course
+ * @access Private
+ */
 groupRouter.get("/course/:courseId", authMiddleware,authorizeRolesMiddleware("student"), getGroupsByCourse);
 
 export default groupRouter;
