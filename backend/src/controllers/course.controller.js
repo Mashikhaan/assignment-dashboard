@@ -379,6 +379,7 @@ export const getAllAvailableCoursesController = async (req, res) => {
            success: true,
            message: "Available  courses fetched successfully",
            count: courses.length,
+           courses: courses
         })
     } catch (err) {
     return res.status(500).json({

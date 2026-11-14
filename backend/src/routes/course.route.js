@@ -25,6 +25,15 @@ courseRouter.post("/create",authMiddleware,authorizeRolesMiddleware("professor")
 courseRouter.get("/",authMiddleware,getAllCourseController);
 
 
+//Get all available courses route
+/**
+ * @route GET /api/courses/explore
+ * @desc Get all available courses
+ * @access Public
+ */
+courseRouter.get("/explore",authMiddleware,authorizeRolesMiddleware("student"),getAllAvailableCoursesController);
+
+
 //get single course by id route
 /**
  * @route GET /api/courses/:courseId
@@ -73,10 +82,3 @@ courseRouter.get("/:courseId/students",authMiddleware,authorizeRolesMiddleware("
 export default courseRouter;
 
 
-//Get all available courses route
-/**
- * @route GET /api/courses/explore
- * @desc Get all available courses
- * @access Public
- */
-courseRouter.get("/explore",authMiddleware,authorizeRolesMiddleware("student"),getAllAvailableCoursesController);
