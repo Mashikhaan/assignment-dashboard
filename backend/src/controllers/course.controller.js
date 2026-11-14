@@ -367,3 +367,24 @@ export const getEnrolledStudentsController = async (req, res) => {
     });
   }
 }
+
+
+
+//Get all available courses for students
+export const getAllAvailableCoursesController = async (req, res) => {
+    try {
+        const courses = await courseModel.find().populate('professor', 'name email');
+
+        return res.status(200).json({
+           success: true,
+           message: "Available  courses fetched successfully",
+           count: courses.length,
+        })
+    } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch available courses",
+      error: err.message,
+    });
+  }
+}

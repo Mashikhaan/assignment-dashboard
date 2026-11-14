@@ -1,7 +1,7 @@
 import express from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { authorizeRolesMiddleware } from "../middleware/role.middleware.js";
-import { createCourseController, deleteCourseController, enrollCourseController, getAllCourseController, getEnrolledStudentsController, getSingleCourseController, updateCourseController } from "../controllers/course.controller.js";
+import { createCourseController, deleteCourseController, enrollCourseController, getAllAvailableCoursesController, getAllCourseController, getEnrolledStudentsController, getSingleCourseController, updateCourseController } from "../controllers/course.controller.js";
 
 
 const courseRouter = express.Router();
@@ -71,3 +71,12 @@ courseRouter.post("/:courseId/enroll",authMiddleware,authorizeRolesMiddleware("s
 courseRouter.get("/:courseId/students",authMiddleware,authorizeRolesMiddleware("professor"),getEnrolledStudentsController);
 
 export default courseRouter;
+
+
+//Get all available courses route
+/**
+ * @route GET /api/courses/explore
+ * @desc Get all available courses
+ * @access Public
+ */
+courseRouter.get("/explore",authMiddleware,authorizeRolesMiddleware("student"),getAllAvailableCoursesController);
