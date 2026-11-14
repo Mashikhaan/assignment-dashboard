@@ -9,7 +9,7 @@ export const createCourseController = async(req, res) => {
            
            //validation
            if(!title || !courseCode || !description) {
-               res.status(400).json({
+             return  res.status(400).json({
                 message: "Course title and course code are required"
             });
            }

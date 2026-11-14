@@ -6,135 +6,224 @@ import submissionModel from "../models/submission.model.js";
 
 
 
-//acknowledge individual assignment submission controller
+
+// Acknowledge individual assignment submission
 export const acknowledgeIndividualAssignmentController = async (req, res) => {
-    try {
-     const {assignmentId} = req.params;
+  try {
+    const { assignmentId } = req.params;
+    const userId = req.user?._id || req.user?.id;
 
-     //find assignment by Id
-     const assignment = await assignmentModel.findById(assignmentId).populate("course", "students");
-
-     if(!assignment){
-         return res.status(404).json({message: "Assignment not found"});
-     }
-
-     //check submission type
-     if(assignment.submissionType !== "Individual"){
-         return res.status(400).json({message: "This assignment is not an individual assignment"});
-     }
-
-     //check enrolled students in course
-     const isEnrolled = assignment.course.students.some(
-        (studentId) => studentId.toString() === req.user._id.toString()
-     )
-
-     if(!isEnrolled){
-         return res.status(401).json({message: "You are not enrolled in this course"});
-     }
-
-     //check if student has already submitted
-     const existingSubmission = await submissionModel.findOne({
-         assignment: assignmentId,
-         student: req.user._id
-     });
-
-     if(existingSubmission){
-         return res.status(400).json({message: "You have already submitted this assignment"});
-     }
-
-     //create submission
-     const submission = await submissionModel.create({
-        assignment: assignmentId,
-        student: req.user._id,
-        acknowledgedBy:req.user._id,
-        acknowledgedAt: new Date(),
-     })
-
-     //send response
-     return res.status(201).json({
-        success: true,
-        message: "Assignment acknowledged successfully",
-        submission
-        });
-
-    }catch(err){
-     return res.status(500).json({
+    if (!userId) {
+      return res.status(401).json({
         success: false,
-        message: err.message
-     })
+        message: "Unauthorized",
+      });
     }
-}
 
+    // Find assignment and populate course students
+    const assignment = await assignmentModel
+      .findById(assignmentId)
+      .populate("course", "students");
 
-//acknowledge group assignment by group leader
-export const acknowledgeGroupAssignmentController = async (req, res) => {
-    try {
-        const {assignmentId} = req.params;
-        const {groupId} = req.body;
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        message: "Assignment not found",
+      });
+    }
 
-        //find and check assignment exists
-        const assignment = await assignmentModel.findById(assignmentId);
+    if (!assignment.course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
 
-        if(!assignment){
-            return res.status(404).json({message: "Assignment not found"});
-        }
+    // Check submission type
+    if (assignment.submissionType !== "Individual") {
+      return res.status(400).json({
+        success: false,
+        message: "This assignment is not an individual assignment",
+      });
+    }
 
+    // Check course enrollment
+    const isEnrolled = assignment.course.students.some(
+      (studentId) => String(studentId) === String(userId)
+    );
 
-       //check assignment submission type
-       if(assignment.submissionType !== "Group"){
-        return res.status(400).json({message: "this  is not a group assignment"});
-       }
+    if (!isEnrolled) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not enrolled in this course",
+      });
+    }
 
-       //find and check group exist
-       const group = await groupModel.findById(groupId);
-
-       if(!group){
-        return res.status(404).json({message: "Group not found"});
-       }
-
-       //check group belong assignment
-       if(group.course.toString() !== assignment.course.toString()){
-        return res.status(400).json({message: "Group does not belong to this assignment's course"});
-       }
-
-       //check group leader is the one who is acknowledging
-       if(group.leader.toString() !== req.user._id.toString()){
-        return res.status(403).json({
-            success: false,
-            message: "Only group leader can acknowledge this assignment",});
-       }
-
-       //check group is already acknowledge
-       const existingSubmission = await submissionModel.findOne({
-        assignment: assignmentId,
-        group: groupId,
-       })
-
-       if(existingSubmission){
-        return res.status(400).json({message: "Group has already acknowledged this assignment"});
-       }
-
-       //create submission
-       const submission = await submissionModel.create({
-           assignment: assignmentId,
-           group: groupId,
-           acknowledgedBy: req.user._id,
-           acknowledgedAt: new Date(),
-       })
-
-       //send response
-       return res.status(201).json({
-        success: true,
-        message: "Group assignment acknowledged  successfully", 
-        submission,
+    // Check existing submission
+    const existingSubmission = await submissionModel.findOne({
+      assignment: assignmentId,
+      student: userId,
     });
-    } catch (err) {
+
+    if (existingSubmission) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already submitted this assignment",
+      });
+    }
+
+    // Create submission
+    const submission = await submissionModel.create({
+      assignment: assignmentId,
+      student: userId,
+      acknowledgedBy: userId,
+      acknowledgedAt: new Date(),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Assignment acknowledged successfully",
+      submission,
+    });
+
+  } catch (err) {
+    // Handle duplicate index error
+    if (err.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "You have already submitted this assignment",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: err.message,
     });
   }
-}
+};
+
+
+
+
+// Acknowledge group assignment by group leader
+export const acknowledgeGroupAssignmentController = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    const { groupId } = req.body;
+
+    const userId = req.user?._id || req.user?.id;
+
+    // Validate required fields
+    if (!groupId) {
+      return res.status(400).json({
+        success: false,
+        message: "Group ID is required",
+      });
+    }
+
+    // Find assignment
+    const assignment = await assignmentModel.findById(assignmentId);
+
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        message: "Assignment not found",
+      });
+    }
+
+    // Check submission type
+    if (assignment.submissionType !== "Group") {
+      return res.status(400).json({
+        success: false,
+        message: "This is not a group assignment",
+      });
+    }
+
+    // Find group
+    const group = await groupModel.findById(groupId);
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Group not found",
+      });
+    }
+
+    // Check whether group belongs to assignment course
+    if (
+      String(group.course) !== String(assignment.course)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Group does not belong to this assignment's course",
+      });
+    }
+
+    // Check whether the requester is the group leader
+    if (String(group.leader) !== String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only group leader can acknowledge this assignment",
+      });
+    }
+
+    // Check whether group leader is enrolled in the course
+    const course = await courseModel.findById(assignment.course)
+      .select("students");
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    const isEnrolled = course.students.some(
+      (studentId) => String(studentId) === String(userId)
+    );
+
+    if (!isEnrolled) {
+      return res.status(403).json({
+        success: false,
+        message: "Group leader is not enrolled in this course",
+      });
+    }
+
+    // Check existing submission
+    const existingSubmission = await submissionModel.findOne({
+      assignment: assignmentId,
+      group: groupId,
+    });
+
+    if (existingSubmission) {
+      return res.status(400).json({
+        success: false,
+        message: "Group has already acknowledged this assignment",
+      });
+    }
+
+    // Create submission
+    const submission = await submissionModel.create({
+      assignment: assignmentId,
+      group: groupId,
+      acknowledgedBy: userId,
+      acknowledgedAt: new Date(),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Group assignment acknowledged successfully",
+      submission,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 
 
 //get assignment status
@@ -211,10 +300,11 @@ export const getAssignmentStatusController = async (req, res) => {
 
 //get submission assignment tracking controller
 export const getSubmissionAssignmentTrackingController = async (req, res) => {
-    try {
+  try {
     const { assignmentId } = req.params;
+    const userId = req.user?._id || req.user?.id;
 
-    //find assignment
+    // Find assignment
     const assignment = await assignmentModel.findById(assignmentId);
 
     if (!assignment) {
@@ -224,9 +314,8 @@ export const getSubmissionAssignmentTrackingController = async (req, res) => {
       });
     }
 
-
-    //check if user is professor
-    if (assignment.professor.toString() !== req.user._id.toString()) {
+    // Check professor authorization
+    if (String(assignment.professor) !== String(userId)) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to view this assignment",
@@ -237,18 +326,26 @@ export const getSubmissionAssignmentTrackingController = async (req, res) => {
     let total = 0;
     let submitted = 0;
 
+    // Individual assignment tracking
     if (assignment.submissionType === "Individual") {
-      const course = await courseModel.findById(assignment.course)
+      const course = await courseModel
+        .findById(assignment.course)
         .populate("students", "name email");
+
+      if (!course) {
+        return res.status(404).json({
+          success: false,
+          message: "Course not found",
+        });
+      }
 
       const submissions = await submissionModel.find({
         assignment: assignmentId,
       });
 
-      //get tracking for each student(Individual)
       tracking = course.students.map((student) => {
         const submission = submissions.find(
-          (item) => item.student?.toString() === student._id.toString()
+          (item) => String(item.student) === String(student._id)
         );
 
         return {
@@ -263,22 +360,27 @@ export const getSubmissionAssignmentTrackingController = async (req, res) => {
       submitted = tracking.filter(
         (item) => item.status === "Submitted"
       ).length;
+    }
 
-    } else {
-      const groups = await groupModel.find({
-        course: assignment.course,
-      })
+    // Group assignment tracking
+    else if (assignment.submissionType === "Group") {
+      const groups = await groupModel
+        .find({
+          course: assignment.course,
+        })
         .populate("leader", "name email")
         .populate("members", "name email");
 
-      const submissions = await submissionModel.find({
-        assignment: assignmentId,
-      }).populate("acknowledgedBy", "name email");
+      const submissions = await submissionModel
+        .find({
+          assignment: assignmentId,
+        })
+        .populate("acknowledgedBy", "name email")
+        .populate("group");
 
-      //get tracking for each group
       tracking = groups.map((group) => {
         const submission = submissions.find(
-          (item) => item.group?.toString() === group._id.toString()
+          (item) => String(item.group?._id || item.group) === String(group._id)
         );
 
         return {
@@ -294,6 +396,11 @@ export const getSubmissionAssignmentTrackingController = async (req, res) => {
       submitted = tracking.filter(
         (item) => item.status === "Submitted"
       ).length;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid assignment submission type",
+      });
     }
 
     return res.status(200).json({
@@ -310,4 +417,4 @@ export const getSubmissionAssignmentTrackingController = async (req, res) => {
       message: error.message,
     });
   }
-}
+};
