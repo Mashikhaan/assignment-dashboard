@@ -1,4 +1,8 @@
+import mongoose from "mongoose";
 import courseModel from "../models/course.model.js";
+import assignmentModel from "../models/assignment.model.js";
+import groupModel from "../models/group.model.js";
+import submissionModel from "../models/submission.model.js";
 
 
 //Create course controller
@@ -10,6 +14,7 @@ export const createCourseController = async(req, res) => {
            //validation
            if(!title || !courseCode || !description) {
              return  res.status(400).json({
+                 success: false,
                 message: "Course title and course code are required"
             });
            }
@@ -21,6 +26,7 @@ export const createCourseController = async(req, res) => {
 
            if(existingCourse) {
             res.status(400).json({
+                 success: false,
                 message: "Course already exist"
             });
            }
@@ -189,41 +195,90 @@ export const updateCourseController = async (req, res) => {
 
 //delete course controller
 export const deleteCourseController = async (req, res) => {
-   try {
-      const {courseId} = req.params;
+  const session = await mongoose.startSession();
 
-      //check if course exists
-      const course = await courseModel.findById(courseId);
+  try {
+    const { courseId } = req.params;
 
-      if(!course){
-          return res.status(404).json({
-              success: false,
-              message: "Course not found"
-          })
-      }
-
-      //check if user is authorized to delete course
-      if(course.professor.toString() !== req.user._id.toString()){
-          return res.status(401).json({
-              success: false,
-              message: "You are not authorized to delete this course"
-          })
-      }
-
-      await courseModel.findByIdAndDelete(courseId);
-
-      return res.status(200).json({
-          success: true,
-          message: "Course deleted successfully"
-      })
-   } catch (err) {
-    return res.status(500).json({
+    // Validate course ID
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
         success: false,
-        message: "Internal server error",
-        error: err.message
-    })
-   }
-}
+        message: "Invalid course ID",
+      });
+    }
+
+    // Find course
+    const course = await courseModel.findById(courseId).session(session);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    // Check course ownership
+    if (course.professor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this course",
+      });
+    }
+
+    // Perform cascade deletion in a transaction
+    await session.withTransaction(async () => {
+
+      // Find all assignments belonging to this course
+      const assignments = await assignmentModel
+        .find({ course: courseId })
+        .select("_id")
+        .session(session);
+
+      const assignmentIds = assignments.map(
+        (assignment) => assignment._id
+      );
+
+      // Delete submissions of these assignments
+      await submissionModel.deleteMany({
+        assignment: { $in: assignmentIds },
+      }).session(session);
+
+      // Delete all groups belonging to this course
+      await groupModel.deleteMany({
+        course: courseId,
+      }).session(session);
+
+      // Delete all assignments belonging to this course
+      await assignmentModel.deleteMany({
+        course: courseId,
+      }).session(session);
+
+      // Finally delete the course
+      await courseModel.deleteOne({
+        _id: courseId,
+      }).session(session);
+
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Course and all related data deleted successfully",
+    });
+
+  } catch (err) {
+    console.error("Delete course error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete course",
+      error: err.message,
+    });
+
+  } finally {
+    await session.endSession();
+  }
+};
 
 
 
